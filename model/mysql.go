@@ -2,11 +2,10 @@ package mysql
 
 import (
 	"database/sql"
-	// "fmt"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/pkg/errors"
 	"go_homework_0130/common/log"
 	"strings"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 )
 
 //不是一个连接，是数据库抽象接口。可以根据driver打开关闭数据库连接，管理连接池
@@ -23,23 +22,26 @@ const (
 )
 
 //初始化连接数据库
-func InitDb() error {
+func InitDb() (err error) {
 	dbPath := strings.Join([]string{userName, ":", password, "@tcp(", ip, ":", port, ")/", dbName, "?charset=utf8"}, "")
-	DB, dbOpenErr := sql.Open("mysql", dbPath)
-	if dbOpenErr != nil {
-		return errors.Wrapf(dbOpenErr, "Database open fail: dbPath is %s", dbPath)
+	DB, err = sql.Open("mysql", dbPath)
+	if err != nil {
+		return errors.Wrapf(err, "Database open fail: dbPath is %s", dbPath)
 	}
 
-	pingErr := DB.Ping()
-	if pingErr != nil {
-		return errors.Wrapf(pingErr, "Database connect fail: dbPath is %s", dbPath)
+	DB.SetConnMaxLifetime(100)
+	DB.SetConnMaxIdleTime(10)
+
+	err = DB.Ping()
+	if err != nil {
+		return errors.Wrapf(err, "Database connect fail: dbPath is %s", dbPath)
 	}
 	return nil
 }
 
-func QueryRow(sql string, values []interface{}) *sql.Row {
-	log.Info(sql, values)
-	return DB.QueryRow(sql, values...)
+func QueryRow(str string, values []interface{}) *sql.Row {
+	log.Info(str, values)
+	return DB.QueryRow(str, values...)
 }
 
 func Exec(sql string, values []interface{}) (result sql.Result, execErr error) {
